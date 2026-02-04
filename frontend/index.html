@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Video Downloader</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #1a1b26; color: #c0caf5; margin: 0; padding: 0; height: 100vh; overflow: hidden; box-sizing: border-box; }
+        .App { display: flex; flex-direction: column; height: 100vh; padding: 20px; box-sizing: border-box; }
+        .header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px; flex-shrink: 0; position: relative; }
+        #logo { width: 35px; height: 35px; }
+        h2 { margin: 0; color: #fff; font-size: 18px; }
+        
+        .language-container { position: absolute; right: 0; top: 0; }
+        #lang-icon { width: 24px; height: 24px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+        #lang-icon:hover { opacity: 1; }
+        .lang-dropdown { display: none; position: absolute; right: 0; top: 30px; background: #24283b; border: 1px solid #414868; border-radius: 6px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5); min-width: 120px; }
+        .lang-dropdown.show { display: block; }
+        .lang-option { padding: 8px 12px; cursor: pointer; font-size: 13px; color: #c0caf5; transition: background 0.2s; }
+        .lang-option:hover { background: #2f3549; color: #fff; }
+        .lang-option.active { color: #7aa2f7; font-weight: bold; }
+
+        #input-screen, #playlist-selection { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+        
+        .quality-switcher { display: flex; gap: 8px; margin-bottom: 15px; flex-shrink: 0; flex-wrap: wrap; }
+        .q-btn { 
+            flex: 1 1 14%; min-width: 60px; 
+            background: #24283b; border: 1px solid #414868; 
+            color: #a9b1d6; padding: 8px 5px; border-radius: 6px; 
+            cursor: pointer; text-align: center; transition: all 0.2s; 
+        }
+        .q-btn span { display: block; font-size: 9px; opacity: 0.7; margin-top: 2px; text-transform: uppercase; }
+        .q-btn:hover { background: #2f3549; }
+        
+        .q-btn.active {
+            background: #7aa2f7; 
+            border-color: #7aa2f7;
+            color: #15161e; 
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(122, 162, 247, 0.4); 
+        }
+        .q-btn.active span {
+            color: #15161e; 
+            opacity: 0.8;
+            font-weight: bold;
+        }
+        
+        #input-area { flex-shrink: 0; margin-bottom: 15px; }
+        textarea { width: 100%; height: 100px; background: #24283b; border: 1px solid #414868; color: #fff; padding: 12px; border-radius: 8px; resize: none; box-sizing: border-box; font-family: monospace; outline: none; font-size: 13px; }
+        textarea:focus { border-color: #7aa2f7; }
+        
+        .flex-list-container { flex: 1; overflow-y: auto; min-height: 0; background: #24283b; border: 1px solid #414868; border-radius: 8px; padding: 5px; margin-bottom: 15px; }
+        .playlist-item { display: flex; align-items: center; padding: 6px 8px; border-bottom: 1px solid #2f3549; }
+        .playlist-item:last-child { border-bottom: none; }
+        .playlist-item input { margin-right: 10px; cursor: pointer; } 
+        .playlist-item label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; font-size: 13px; cursor: pointer; color: #c0caf5; }
+        .duration-badge { font-size: 11px; background: #1a1b26; padding: 2px 6px; border-radius: 4px; color: #ff9e64; margin-left: 8px; font-family: monospace; border: 1px solid #414868; }
+        .group-header { background: #414868; color: #fff; padding: 6px 10px; font-size: 12px; font-weight: bold; border-radius: 4px; margin: 5px 0; }
+        
+        .action-bar { flex-shrink: 0; display: flex; gap: 10px; align-items: center; background: #1a1b26; padding-top: 5px; }
+        .checkbox-wrapper { display: flex; align-items: center; margin-right: auto; color: #fff; font-size: 14px; cursor: pointer; background: #24283b; padding: 8px 12px; border-radius: 6px; border: 1px solid #414868; }
+        .checkbox-wrapper input { transform: scale(1.3); margin-right: 10px; cursor: pointer; }
+        
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; background: #7aa2f7; color: #15161e; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #89b4fa; }
+        .btn-secondary { background: #414868; color: #fff; }
+        .btn-secondary:hover { background: #565f89; }
+        
+        .btn-stop { width: 100%; padding: 12px; background: #f7768e; border: none; border-radius: 8px; color: #fff; font-weight: bold; cursor: pointer; display: none; margin-top: 10px; flex-shrink: 0; }
+        #result { flex-shrink: 0; max-height: 60px; overflow-y: auto; font-size: 11px; color: #9aa5ce; margin-top: 10px; font-family: monospace; border-top: 1px solid #2f3549; padding-top: 5px; }
+
+        #log-toggle-btn { background: none; border: none; color: #565f89; font-size: 11px; text-decoration: underline; cursor: pointer; margin-top: 5px; text-align: right; width: 100%; }
+        #log-toggle-btn:hover { color: #7aa2f7; }
+        #terminal-container { display: none; background-color: #000; color: #0f0; font-family: 'Consolas', 'Courier New', monospace; font-size: 11px; padding: 10px; border-radius: 6px; border: 1px solid #414868; height: 150px; overflow-y: auto; margin-top: 5px; white-space: pre-wrap; word-break: break-all; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1b26; }
+        ::-webkit-scrollbar-thumb { background: #414868; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="app" class="App">
+        <div class="header">
+            <img src="./src/assets/images/logo-universal.png" id="logo" alt="logo"/>
+            <h2 data-i18n="app_title">Video Downloader</h2>
+            <div class="language-container">
+                <img src="./src/assets/images/lang.png" id="lang-icon" alt="Language" onclick="toggleLangMenu()"/>
+                <div class="lang-dropdown" id="lang-menu">
+                    <div class="lang-option" onclick="setLanguage('en')">English</div>
+                    <div class="lang-option" onclick="setLanguage('uk')">Українська</div>
+                    <div class="lang-option" onclick="setLanguage('ru')">Русский</div>
+                    <div class="lang-option" onclick="setLanguage('es')">Español</div>
+                    <div class="lang-option" onclick="setLanguage('it')">Italiano</div>
+                    <div class="lang-option" onclick="setLanguage('de')">Deutsch</div>
+                    <div class="lang-option" onclick="setLanguage('fr')">Français</div>
+                    <div class="lang-option" onclick="setLanguage('pl')">Polski</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="input-screen">
+            <div class="quality-switcher">
+                <div class="q-btn" onclick="selectQuality('best', this)">BEST <span>Video</span></div>
+                <div class="q-btn" onclick="selectQuality('1080', this)">1080p <span>Full HD</span></div>
+                <div class="q-btn active" onclick="selectQuality('720', this)">720p <span>HD</span></div>
+                <div class="q-btn" onclick="selectQuality('480', this)">480p <span>SD</span></div>
+                <div class="q-btn" onclick="selectQuality('360', this)">360p <span>Low</span></div>
+                <div class="q-btn" onclick="selectQuality('mp3', this)">🎵 <span>MP3</span></div>
+            </div>
+
+            <div id="input-area">
+                <textarea id="video-urls" autocomplete="off" data-i18n-placeholder="placeholder_input"></textarea>
+            </div>
+            
+            <div style="flex: 1;"></div>
+
+            <button class="btn" id="btn-analyze" style="width: 100%;" onclick="preCheckInput()" data-i18n="btn_next">Next (Analyze)</button>
+        </div>
+
+        <div id="playlist-selection" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-shrink: 0;">
+                <span style="font-size:13px; color:#a9b1d6;" id="playlist-stats">Loading...</span>
+                <div>
+                    <button class="q-btn" style="padding:4px 10px; display:inline-block; min-width: auto;" onclick="toggleAll(true)" data-i18n="btn_all">All</button>
+                    <button class="q-btn" style="padding:4px 10px; display:inline-block; min-width: auto;" onclick="toggleAll(false)" data-i18n="btn_none">None</button>
+                </div>
+            </div>
+
+            <div class="flex-list-container" id="playlist-items-container"></div>
+
+            <div class="action-bar">
+                <label class="checkbox-wrapper">
+                    <input type="checkbox" id="add-numbering"> 
+                    <span data-i18n="lbl_numbering">Numbering</span>
+                </label>
+                
+                <button class="btn btn-secondary" onclick="cancelSelection()" data-i18n="btn_back">Back</button>
+                <button class="btn" style="flex: 1.5;" onclick="confirmDownload()" data-i18n="btn_download">Download</button>
+            </div>
+        </div>
+
+        <button class="btn-stop" onclick="stopDownload()" data-i18n="btn_stop_download">STOP DOWNLOAD</button>
+        
+        <div>
+            <button id="log-toggle-btn" onclick="toggleLogs()" data-i18n="btn_show_logs">[+] Show Logs</button>
+            <div id="terminal-container"></div>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script src="./src/main.js" type="module"></script>
+</body>
+</html>
